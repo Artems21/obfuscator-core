@@ -1,9 +1,6 @@
 package org.jxfuscator.utils;
 
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.IntInsnNode;
-import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.*;
 
 
 import static org.objectweb.asm.Opcodes.*;
@@ -148,12 +145,12 @@ public class NodeUtil {
 //        return max + 1;
 //    }
 //
-//    public static MethodNode getMethod(final ClassNode classNode, final String name) {
-//        for (final MethodNode method : classNode.methods)
-//            if (method.name.equals(name))
-//                return method;
-//        return null;
-//    }
+    public static MethodNode getMethod(final ClassNode classNode, final String name) {
+        for (final MethodNode method : classNode.methods)
+            if (method.name.equals(name))
+                return method;
+        return null;
+    }
 //
 //    public static ClassNode toNode(final String className) throws IOException {
 //        final ClassReader classReader = new ClassReader(JObf.class.getResourceAsStream("/" + className.replace('.', '/') + ".class"));

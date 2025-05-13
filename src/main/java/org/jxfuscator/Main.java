@@ -2,6 +2,7 @@ package org.jxfuscator;
 
 import org.jxfuscator.transformers.Transformer;
 import org.jxfuscator.transformers.impl.NumberTransformer;
+import org.jxfuscator.transformers.impl.StringTransformer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
@@ -23,10 +24,12 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException {
-        File input = new File("/home/artem/IdeaProjects/obfuscator/jar/dc.jar");
-        File output = new File("/home/artem/IdeaProjects/obfuscator/jar/dc1.jar");
+        File input = new File("/home/artem/IdeaProjects/obfuscator/jar/untitled.jar");
+        File output = new File("/home/artem/IdeaProjects/obfuscator/jar/untitled-obf.jar");
         readInputJar(input);
         addTransformer(new NumberTransformer());
+        addTransformer(new StringTransformer());
+
         applyTransformers();
         writeOutputJar(output);
 
@@ -91,11 +94,8 @@ public class Main {
                     node.accept(writer);
                     classBytes = writer.toByteArray();
                 } catch (Exception e) {
-                    System.err.println("Error writing class: " + className + ", falling back to original");
-                    classBytes = originalClassData.get(className);
-                    if (classBytes == null) {
-                        throw new IOException("Original class bytes not found for: " + className, e);
-                    }
+                    e.printStackTrace();
+                    return;
                 }
 
                 out.putNextEntry(new ZipEntry(className));

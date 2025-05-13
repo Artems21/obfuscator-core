@@ -8,4 +8,9 @@ public class RandomUtil {
     public static int randomInt(int lowerbound, int upperbound) {
         return random.nextInt(lowerbound, upperbound);
     }
+
+    public static byte randomByte(byte lowerbound, byte upperbound) {
+        return (byte) random.nextInt(lowerbound, upperbound);
+    }
+
 }

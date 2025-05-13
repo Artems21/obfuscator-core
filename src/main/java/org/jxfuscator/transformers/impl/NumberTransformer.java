@@ -21,18 +21,39 @@ public class NumberTransformer extends Transformer {
     private static final Logger LOGGER = new Logger(NumberTransformer.class.getSimpleName());
 
     @Override
-    public boolean process(ClassNode node) {
-        boolean flag = false;
+    public void process(ClassNode node) {
+        if ((node.access & ACC_INTERFACE) != 0)
+            return;
         List<Trio> vm_cases = new ArrayList<>();
         for (MethodNode methodNode : node.methods) {
+
+
+            if (methodNode.name.contains("decrypt") || methodNode.name.contains("clinit")) {
+                for (AbstractInsnNode insnNode : methodNode.instructions) {
+                    if (isIntegerNumber(insnNode)) {
+                        int value = getIntValue(insnNode);
+                        if (value == Integer.MIN_VALUE) {
+                            continue;
+                        }
+                        int a = randomInt(1500, Integer.MAX_VALUE);
+                        int b = a ^ value;
+                        methodNode.instructions.insertBefore(insnNode, generateIntPush(a));
+                        methodNode.instructions.insertBefore(insnNode, generateIntPush(b));
+                        methodNode.instructions.insertBefore(insnNode, new InsnNode(IXOR));
+                        methodNode.instructions.remove(insnNode);
+                    }
+                }
+                continue;
+            }
+
+
             for (AbstractInsnNode insnNode : methodNode.instructions) {
                 if (isIntegerNumber(insnNode)) {
-                    flag = true;
                     int value = getIntValue(insnNode);
-                    if (value == Integer.MIN_VALUE){
+                    if (value == Integer.MIN_VALUE) {
                         continue;
                     }
-                    LOGGER.info("Get value: "  +value);
+                    LOGGER.info("Get value: " + value);
 
                     int a = randomInt(1500, Integer.MAX_VALUE);
                     int b = randomInt(1500, Integer.MAX_VALUE);
@@ -43,7 +64,7 @@ public class NumberTransformer extends Transformer {
 
                     methodNode.instructions.insertBefore(insnNode, new MethodInsnNode(INVOKESTATIC,
                             node.name,
-                            "h" + Math.abs((node.name + "NUM_VM").hashCode()),
+                            "h" + node.name + "NUM_VM",
                             "(II)I",
                             false));
 
@@ -66,7 +87,7 @@ public class NumberTransformer extends Transformer {
 
             LabelNode labelDefault = new LabelNode();
 
-            String methodName = "h" + Math.abs((node.name + "NUM_VM").hashCode());
+            String methodName = "h" + node.name + "NUM_VM";
             MethodNode mn = new MethodNode(ACC_PUBLIC | ACC_STATIC, methodName, "(II)I", null, null);
 
             mn.instructions.add(new VarInsnNode(ILOAD, 0));
@@ -81,7 +102,7 @@ public class NumberTransformer extends Transformer {
                 Trio trio = vm_cases.get(i);
                 LabelNode label = labels[i];
                 mn.instructions.add(label);
-              mn.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+                mn.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 
 
                 int a = randomInt(1500, Integer.MAX_VALUE);
@@ -121,6 +142,5 @@ public class NumberTransformer extends Transformer {
             node.methods.add(mn);
 
         }
-        return flag;
     }
 }
