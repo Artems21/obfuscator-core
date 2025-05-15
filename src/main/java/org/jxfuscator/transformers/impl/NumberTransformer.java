@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.*;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -18,7 +19,6 @@ import static org.jxfuscator.utils.RandomUtil.randomInt;
 import static org.objectweb.asm.Opcodes.*;
 
 public class NumberTransformer extends Transformer {
-    private static final Logger LOGGER = new Logger(NumberTransformer.class.getSimpleName());
 
     @Override
     public void process(ClassNode node) {
@@ -26,34 +26,12 @@ public class NumberTransformer extends Transformer {
             return;
         List<Trio> vm_cases = new ArrayList<>();
         for (MethodNode methodNode : node.methods) {
-
-
-            if (methodNode.name.contains("decrypt") || methodNode.name.contains("clinit")) {
-                for (AbstractInsnNode insnNode : methodNode.instructions) {
-                    if (isIntegerNumber(insnNode)) {
-                        int value = getIntValue(insnNode);
-                        if (value == Integer.MIN_VALUE) {
-                            continue;
-                        }
-                        int a = randomInt(1500, Integer.MAX_VALUE);
-                        int b = a ^ value;
-                        methodNode.instructions.insertBefore(insnNode, generateIntPush(a));
-                        methodNode.instructions.insertBefore(insnNode, generateIntPush(b));
-                        methodNode.instructions.insertBefore(insnNode, new InsnNode(IXOR));
-                        methodNode.instructions.remove(insnNode);
-                    }
-                }
-                continue;
-            }
-
-
             for (AbstractInsnNode insnNode : methodNode.instructions) {
                 if (isIntegerNumber(insnNode)) {
                     int value = getIntValue(insnNode);
                     if (value == Integer.MIN_VALUE) {
                         continue;
                     }
-                    LOGGER.info("Get value: " + value);
 
                     int a = randomInt(1500, Integer.MAX_VALUE);
                     int b = randomInt(1500, Integer.MAX_VALUE);
@@ -64,7 +42,7 @@ public class NumberTransformer extends Transformer {
 
                     methodNode.instructions.insertBefore(insnNode, new MethodInsnNode(INVOKESTATIC,
                             node.name,
-                            "h" + node.name + "NUM_VM",
+                            "h" + node.name.replace("/", "_") + "NUM_VM",
                             "(II)I",
                             false));
 
@@ -87,8 +65,12 @@ public class NumberTransformer extends Transformer {
 
             LabelNode labelDefault = new LabelNode();
 
-            String methodName = "h" + node.name + "NUM_VM";
+            String methodName = "h" + node.name.replace("/", "_") + "NUM_VM";
             MethodNode mn = new MethodNode(ACC_PUBLIC | ACC_STATIC, methodName, "(II)I", null, null);
+
+            LabelNode start = new LabelNode();
+            LabelNode end = new LabelNode();
+            mn.instructions.add(start);
 
             mn.instructions.add(new VarInsnNode(ILOAD, 0));
             mn.instructions.add(new VarInsnNode(ILOAD, 1));
@@ -108,25 +90,10 @@ public class NumberTransformer extends Transformer {
                 int a = randomInt(1500, Integer.MAX_VALUE);
                 int b = a ^ trio.z;
 
-                if (a >= -1 && a <= 5) {
-                    mn.instructions.add(new InsnNode(a + 3));
-                } else if (a >= -128 && a <= 127) {
-                    mn.instructions.add(new IntInsnNode(BIPUSH, a));
-                } else if (a >= -32768 && a <= 32767) {
-                    mn.instructions.add(new IntInsnNode(SIPUSH, a));
-                } else {
-                    mn.instructions.add(new LdcInsnNode(a));
-                }
+                mn.instructions.add(generateIntPush(a));
 
-                if (b >= -1 && b <= 5) {
-                    mn.instructions.add(new InsnNode(b + 3));
-                } else if (b >= -128 && b <= 127) {
-                    mn.instructions.add(new IntInsnNode(BIPUSH, b));
-                } else if (b >= -32768 && b <= 32767) {
-                    mn.instructions.add(new IntInsnNode(SIPUSH, b));
-                } else {
-                    mn.instructions.add(new LdcInsnNode(b));
-                }
+
+                mn.instructions.add(generateIntPush(b));
 
                 mn.instructions.add(new InsnNode(IXOR));
                 mn.instructions.add(new VarInsnNode(ISTORE, 1));
@@ -138,7 +105,17 @@ public class NumberTransformer extends Transformer {
             mn.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
             mn.instructions.add(new InsnNode(ICONST_0));
             mn.instructions.add(new InsnNode(IRETURN));
-            mn.visitMaxs(3, 3);
+
+            mn.instructions.add(end);
+
+
+            mn.localVariables.add(new LocalVariableNode("a", "I", null, start, end, 0));
+            mn.localVariables.add(new LocalVariableNode("b", "I", null, start, end, 1));
+
+            mn.parameters = Arrays.asList(
+                    new ParameterNode("a", 0),
+                    new ParameterNode("b", 0)
+            );
             node.methods.add(mn);
 
         }

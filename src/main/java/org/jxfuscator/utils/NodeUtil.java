@@ -1,8 +1,13 @@
 package org.jxfuscator.utils;
 
+import org.jxfuscator.Main;
 import org.objectweb.asm.tree.*;
 
 
+import java.io.IOException;
+import java.util.Map;
+
+import static org.jxfuscator.Main.classes;
 import static org.objectweb.asm.Opcodes.*;
 
 public class NodeUtil {
@@ -151,15 +156,16 @@ public class NodeUtil {
                 return method;
         return null;
     }
-//
-//    public static ClassNode toNode(final String className) throws IOException {
-//        final ClassReader classReader = new ClassReader(JObf.class.getResourceAsStream("/" + className.replace('.', '/') + ".class"));
-//        final ClassNode classNode = new ClassNode();
-//
-//        classReader.accept(classNode, 0);
-//
-//        return classNode;
-//    }
+
+    public static ClassNode toNode(final String className) {
+        for (Map.Entry<String, ClassNode> entry : classes.entrySet()) {
+            ClassNode node = entry.getValue();
+            if (node.name.equals(className))
+                return node;
+        }
+
+        return null;
+    }
 //
 //    public static int getInvertedJump(int opcode) {
 //        int i = -1;

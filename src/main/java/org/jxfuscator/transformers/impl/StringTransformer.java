@@ -8,6 +8,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.jxfuscator.utils.NodeUtil.generateIntPush;
@@ -73,8 +74,8 @@ public class StringTransformer extends Transformer {
                         secondList.add(new IntInsnNode(Opcodes.NEWARRAY, T_BYTE));
                         secondList.add(new InsnNode(DUP));
                         for (int i = 0; i < base.length; i++) {
-                            secondList.add(generateIntPush(i));
-                            secondList.add(generateIntPush(second[i]));
+                            secondList.add(generateXor(i));
+                            secondList.add(generateXor(second[i]));
                             secondList.add(new InsnNode(BASTORE));
                             if (i != base.length - 1)
                                 secondList.add(new InsnNode(DUP));
@@ -115,11 +116,14 @@ public class StringTransformer extends Transformer {
             for (Pair<String, Integer> pair : strings) {
                 String str = pair.getKey();
                 int id = pair.getValue();
-                System.out.println(str);
                 String fieldName = "first_" + id;
                 String methodName = "decrypt_" + id;
 
                 MethodNode mn = new MethodNode(ACC_PUBLIC | ACC_STATIC, methodName, "([B)Ljava/lang/String;", null, null);
+                LabelNode start = new LabelNode();
+                LabelNode end = new LabelNode();
+                mn.instructions.add(start);
+
                 mn.instructions.add(new TypeInsnNode(Opcodes.NEW, "java/lang/StringBuilder"));
                 mn.instructions.add(new InsnNode(Opcodes.DUP));
                 mn.instructions.add(new MethodInsnNode(
@@ -134,7 +138,7 @@ public class StringTransformer extends Transformer {
                 for (int i = 0; i < str.length(); i++) {
                     mn.instructions.add(new VarInsnNode(ALOAD, 1)); // string builder
                     mn.instructions.add(new VarInsnNode(ALOAD, 0)); // [B in arg0
-                    mn.instructions.add(generateIntPush(i)); // element index
+                    mn.instructions.add(generateXor(i)); // element index
                     mn.instructions.add(new InsnNode(BALOAD));
                     mn.instructions.add(new FieldInsnNode(
                             Opcodes.GETSTATIC,
@@ -142,7 +146,7 @@ public class StringTransformer extends Transformer {
                             fieldName,
                             "[B"
                     ));  // get field
-                    mn.instructions.add(generateIntPush(i)); // element index
+                    mn.instructions.add(generateXor(i)); // element index
                     mn.instructions.add(new InsnNode(BALOAD));
                     mn.instructions.add(new InsnNode(IADD));
                     mn.instructions.add(new InsnNode(I2C));
@@ -165,9 +169,27 @@ public class StringTransformer extends Transformer {
                         false
                 ));
                 mn.instructions.add(new InsnNode(ARETURN));
-                node.methods.add(mn);
+                mn.instructions.add(end);
 
+                mn.localVariables.add(new LocalVariableNode("a", "[B", null, start, end, 0));
+
+                mn.parameters = Arrays.asList(
+                        new ParameterNode("a", 0)
+                );
+
+                node.methods.add(mn);
             }
+
         }
+    }
+
+    private InsnList generateXor(int value) {
+        InsnList insnList = new InsnList();
+        int a = randomInt(1500, Integer.MAX_VALUE);
+        int b = a ^ value;
+        insnList.add(generateIntPush(a));
+        insnList.add(generateIntPush(b));
+        insnList.add(new InsnNode(IXOR));
+        return insnList;
     }
 }

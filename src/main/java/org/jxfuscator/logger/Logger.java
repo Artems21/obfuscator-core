@@ -1,12 +1,12 @@
 package org.jxfuscator.logger;
 
 public class Logger {
-    private String prefix;
-    public Logger(String name) {
-        this.prefix = "[" +  name + "] ";
-    }
 
     public void info(String msg) {
-        System.out.println(prefix + msg);
+        System.out.println("[INFO] " + msg);
+    }
+
+    public void debug(String msg) {
+        System.out.println("[DEBUG] " + msg);
     }
 }
